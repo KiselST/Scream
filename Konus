@@ -1,0 +1,227 @@
+-- Konus Screamer | Brookhaven RP
+-- Скример по нику игрока
+-- Система Ryzen
+
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local SG = game:GetService("StarterGui")
+local WS = workspace
+local RunService = game:GetService("RunService")
+
+-- Уведомление
+function Notify(text)
+    pcall(function()
+        SG:SetCore("SendNotification", {
+            Title = "Konus Screamer",
+            Text = text,
+            Duration = 3
+        })
+    end)
+end
+
+-- Функция поиска игрока
+function FindPlayer(name)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Name:lower():find(name:lower()) then
+            return p
+        end
+    end
+    return nil
+end
+
+-- Функция скримера для конкретного игрока
+function ScreamerPlayer(target)
+    -- Спавним скример в игрока
+    local char = target.Character
+    if not char then
+        Notify("Игрок не загружен!")
+        return
+    end
+    
+    -- Создаём страшный GUI в PlayerGui игрока
+    local plrGui = target:FindFirstChild("PlayerGui")
+    if not plrGui then
+        Notify("PlayerGui не найден!")
+        return
+    end
+    
+    -- Скример GUI
+    local scr = Instance.new("ScreenGui")
+    scr.Name = "ScreamerGUI"
+    scr.Parent = plrGui
+    
+    -- Чёрный фон
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.Parent = scr
+    
+    -- Красная вспышка
+    local flash = Instance.new("Frame")
+    flash.Size = UDim2.new(1, 0, 1, 0)
+    flash.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    flash.BackgroundTransparency = 0.7
+    flash.Parent = scr
+    
+    -- Страшное лицо
+    local face = Instance.new("ImageLabel")
+    face.Size = UDim2.new(0.7, 0, 0.7, 0)
+    face.Position = UDim2.new(0.15, 0, 0.15, 0)
+    face.Image = "rbxassetid://17428653442"
+    face.BackgroundTransparency = 1
+    face.Parent = scr
+    
+    -- Текст
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1, 0, 0.1, 0)
+    txt.Position = UDim2.new(0, 0, 0.05, 0)
+    txt.BackgroundTransparency = 1
+    txt.Text = "👁 Я ВИЖУ ТЕБЯ 👁"
+    txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+    txt.Font = Enum.Font.GothamBlack
+    txt.TextSize = 40
+    txt.Parent = scr
+    
+    -- Эффект появления
+    for i = 0, 1, 0.03 do
+        bg.BackgroundTransparency = 1 - i
+        flash.BackgroundTransparency = 0.7 - (i * 0.3)
+        RunService.RenderStepped:Wait()
+    end
+    
+    -- Тряска камеры (если мы рядом)
+    if char:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+        local dist = (LP.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+        if dist < 100 then
+            local origCF = workspace.CurrentCamera.CFrame
+            spawn(function()
+                for _ = 1, 20 do
+                    pcall(function()
+                        workspace.CurrentCamera.CFrame = origCF * CFrame.new(
+                            math.random(-3, 3),
+                            math.random(-3, 3),
+                            math.random(-1, 1)
+                        )
+                    end)
+                    RunService.RenderStepped:Wait()
+                end
+                pcall(function() workspace.CurrentCamera.CFrame = origCF end)
+            end)
+        end
+    end
+    
+    -- Звук (если есть)
+    spawn(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://9116487514" -- страшный звук
+        sound.Volume = 10
+        sound.Parent = char
+        sound:Play()
+    end)
+    
+    -- Убираем через 3 секунды
+    wait(3)
+    pcall(function() scr:Destroy() end)
+    
+    Notify("Скример отправлен: " .. target.Name)
+end
+
+-- ============================================================
+-- GUI
+-- ============================================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
+if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 250, 0, 130)
+Main.Position = UDim2.new(0.5, -125, 0.5, -65)
+Main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Parent = ScreenGui
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+
+-- Заголовок
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+Title.BorderSizePixel = 0
+Title.Text = "👻 KONUS SCREAMER"
+Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 14
+Title.Parent = Main
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+local cover = Instance.new("Frame")
+cover.Size = UDim2.new(1, 0, 0.5, 0)
+cover.Position = UDim2.new(0, 0, 0.5, 0)
+cover.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+cover.BorderSizePixel = 0
+cover.Parent = Title
+
+-- Поле ввода
+local NameBox = Instance.new("TextBox")
+NameBox.Size = UDim2.new(1, -20, 0, 28)
+NameBox.Position = UDim2.new(0, 10, 0, 40)
+NameBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+NameBox.BorderSizePixel = 0
+NameBox.PlaceholderText = "Введи ник игрока..."
+NameBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+NameBox.Text = ""
+NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameBox.Font = Enum.Font.Gotham
+NameBox.TextSize = 12
+NameBox.ClearTextOnFocus = false
+NameBox.Parent = Main
+Instance.new("UICorner", NameBox).CornerRadius = UDim.new(0, 6)
+
+-- Кнопка СКРИМЕР
+local ScreamBtn = Instance.new("TextButton")
+ScreamBtn.Size = UDim2.new(1, -20, 0, 32)
+ScreamBtn.Position = UDim2.new(0, 10, 0, 78)
+ScreamBtn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+ScreamBtn.Text = "👻 ОТПРАВИТЬ СКРИМЕР"
+ScreamBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ScreamBtn.Font = Enum.Font.GothamBlack
+ScreamBtn.TextSize = 12
+ScreamBtn.BorderSizePixel = 0
+ScreamBtn.Parent = Main
+Instance.new("UICorner", ScreamBtn).CornerRadius = UDim.new(0, 6)
+
+-- Закрыть
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 22, 0, 22)
+Close.Position = UDim2.new(1, -26, 0, 4)
+Close.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+Close.Text = "✕"
+Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.Font = Enum.Font.GothamBold
+Close.TextSize = 10
+Close.BorderSizePixel = 0
+Close.Parent = Main
+Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 11)
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- Действие
+ScreamBtn.MouseButton1Click:Connect(function()
+    local name = NameBox.Text
+    if name == "" then
+        Notify("❌ Введи ник!")
+        return
+    end
+    
+    local target = FindPlayer(name)
+    if not target then
+        Notify("❌ Игрок не найден!")
+        return
+    end
+    
+    Notify("👻 Отправляю скример: " .. target.Name)
+    ScreamerPlayer(target)
+end)
+
+Notify("👻 Konus Screamer готов!")
+Notify("Введи ник и жми кнопку!")
