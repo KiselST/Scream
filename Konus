@@ -1,10 +1,11 @@
--- Konus Screamer v4.0 | Brookhaven RP
--- BillboardGui версия (работает 100%)
+-- Konus Screamer v5.0 | Brookhaven RP
+-- Видят ВСЕ игроки | Fire + частицы
 -- Система Ryzen
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local SG = game:GetService("StarterGui")
+local WS = workspace
 
 function Notify(text)
     pcall(function()
@@ -26,77 +27,54 @@ function ScreamerPlayer(target)
     if not char then Notify("❌ Игрок не загружен!"); return end
     
     local head = char:FindFirstChild("Head")
-    if not head then Notify("❌ Голова не найдена!"); return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not head or not root then Notify("❌ Части тела не найдены!"); return end
     
-    -- ОГРОМНЫЙ BillboardGui над головой
-    local bill = Instance.new("BillboardGui")
-    bill.Name = "SCREAMER"
-    bill.Size = UDim2.new(20, 0, 20, 0)
-    bill.StudsOffset = Vector3.new(0, 5, 0)
-    bill.MaxDistance = 1000
-    bill.AlwaysOnTop = true
-    bill.Parent = head
+    -- ОГОНЬ на голове (видят ВСЕ!)
+    local fire = Instance.new("Fire")
+    fire.Size = 30
+    fire.Heat = 100
+    fire.Parent = head
     
-    -- Чёрный фон
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    bg.BackgroundTransparency = 0
-    bg.Parent = bill
+    -- ДЫМ вокруг игрока (видят ВСЕ!)
+    local smoke = Instance.new("Smoke")
+    smoke.Size = 50
+    smoke.RiseVelocity = 10
+    smoke.Parent = root
     
-    -- Страшное лицо
-    local face = Instance.new("ImageLabel")
-    face.Size = UDim2.new(1, 0, 1, 0)
-    face.Image = "rbxassetid://17428653442"
-    face.BackgroundTransparency = 1
-    face.Parent = bg
+    -- ИСКРЫ (видят ВСЕ!)
+    local sparkles = Instance.new("Sparkles")
+    sparkles.SparkleColor = Color3.fromRGB(255, 0, 0)
+    sparkles.Parent = head
     
-    -- Текст сверху
-    local txt = Instance.new("TextLabel")
-    txt.Size = UDim2.new(1, 0, 0.15, 0)
-    txt.Position = UDim2.new(0, 0, 0, 0)
-    txt.BackgroundTransparency = 1
-    txt.Text = "👁 Я ВИЖУ ТЕБЯ 👁"
-    txt.TextColor3 = Color3.fromRGB(255, 0, 0)
-    txt.Font = Enum.Font.GothamBlack
-    txt.TextSize = 30
-    txt.TextStrokeTransparency = 0
-    txt.Parent = bg
-    
-    -- Нижний текст
-    local txt2 = Instance.new("TextLabel")
-    txt2.Size = UDim2.new(1, 0, 0.15, 0)
-    txt2.Position = UDim2.new(0, 0, 0.85, 0)
-    txt2.BackgroundTransparency = 1
-    txt2.Text = "ОБЕРНИСЬ! 👁"
-    txt2.TextColor3 = Color3.fromRGB(255, 0, 0)
-    txt2.Font = Enum.Font.GothamBlack
-    txt2.TextSize = 30
-    txt2.TextStrokeTransparency = 0
-    txt2.Parent = bg
-    
-    -- Звук крика
+    -- ЗВУК (слышат ВСЕ рядом!)
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://9116487514"
     sound.Volume = 10
     sound.Parent = head
     sound:Play()
     
-    -- Спамим частицами (огонь)
+    -- ТЕЛЕПОРТ игрока вверх-вниз (видят ВСЕ!)
     spawn(function()
+        local origPos = root.CFrame
         for i = 1, 10 do
-            local fire = Instance.new("Fire")
-            fire.Size = 20
-            fire.Heat = 50
-            fire.Parent = head
+            pcall(function()
+                root.CFrame = origPos * CFrame.new(0, math.random(10, 30), 0)
+            end)
             wait(0.3)
-            fire:Destroy()
+            pcall(function()
+                root.CFrame = origPos
+            end)
+            wait(0.3)
         end
+        pcall(function() root.CFrame = origPos end)
     end)
     
-    -- Убираем через 5 секунд
-    wait(5)
-    pcall(function() bill:Destroy() end)
+    -- Убираем эффекты через 8 секунд
+    wait(8)
+    pcall(function() fire:Destroy() end)
+    pcall(function() smoke:Destroy() end)
+    pcall(function() sparkles:Destroy() end)
     pcall(function() sound:Destroy() end)
     
     Notify("✅ Скример отправлен: " .. target.Name)
@@ -121,7 +99,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 28)
 title.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 title.BorderSizePixel = 0
-title.Text = "👻 KONUS SCREAMER v4"
+title.Text = "👻 SCREAMER v5"
 title.TextColor3 = Color3.fromRGB(255, 50, 50)
 title.Font = Enum.Font.GothamBlack
 title.TextSize = 13
@@ -159,7 +137,7 @@ btn.MouseButton1Click:Connect(function()
     if name == "" then Notify("❌ Введи ник!"); return end
     local target = FindPlayer(name)
     if not target then Notify("❌ Игрок не найден!"); return end
-    Notify("👻 Отправляю скример: " .. target.Name)
+    Notify("👻 Скример: " .. target.Name)
     ScreamerPlayer(target)
 end)
 
@@ -176,5 +154,5 @@ close.Parent = main
 Instance.new("UICorner", close).CornerRadius = UDim.new(0, 10)
 close.MouseButton1Click:Connect(function() gui:Destroy() end)
 
-Notify("👻 Konus Screamer v4 готов!")
-Notify("BillboardGui — работает всегда!")
+Notify("👻 Screamer v5 готов!")
+Notify("Видят ВСЕ! Огонь + дым + звук")
