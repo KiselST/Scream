@@ -1,158 +1,392 @@
--- Konus Screamer v5.0 | Brookhaven RP
--- Видят ВСЕ игроки | Fire + частицы
+-- Konus HUB v5.0 | Brookhaven RP
+-- Все рабочие лазейки 2026
 -- Система Ryzen
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local SG = game:GetService("StarterGui")
 local WS = workspace
+local RunService = game:GetService("RunService")
+local Camera = WS.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
-function Notify(text)
+function Notify(t)
     pcall(function()
-        SG:SetCore("SendNotification", {Title = "Konus Screamer", Text = text, Duration = 3})
+        SG:SetCore("SendNotification", {Title="Konus HUB", Text=t, Duration=3})
     end)
 end
 
-function FindPlayer(name)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LP and p.Name:lower():find(name:lower()) then
-            return p
-        end
+function FindPlayer(n)
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Name:lower():find(n:lower()) then return p end
     end
     return nil
 end
 
-function ScreamerPlayer(target)
+-- ===== ФУНКЦИИ СКРИМЕРА =====
+function ScreamerFire(target)
     local char = target.Character
-    if not char then Notify("❌ Игрок не загружен!"); return end
-    
+    if not char then return end
     local head = char:FindFirstChild("Head")
     local root = char:FindFirstChild("HumanoidRootPart")
-    if not head or not root then Notify("❌ Части тела не найдены!"); return end
+    if not head or not root then return end
     
-    -- ОГОНЬ на голове (видят ВСЕ!)
+    -- Огонь (видят все)
     local fire = Instance.new("Fire")
     fire.Size = 30
     fire.Heat = 100
     fire.Parent = head
     
-    -- ДЫМ вокруг игрока (видят ВСЕ!)
+    -- Дым (видят все)
     local smoke = Instance.new("Smoke")
     smoke.Size = 50
-    smoke.RiseVelocity = 10
+    smoke.RiseVelocity = 15
     smoke.Parent = root
     
-    -- ИСКРЫ (видят ВСЕ!)
-    local sparkles = Instance.new("Sparkles")
-    sparkles.SparkleColor = Color3.fromRGB(255, 0, 0)
-    sparkles.Parent = head
+    -- Искры (видят все)
+    local spark = Instance.new("Sparkles")
+    spark.SparkleColor = Color3.fromRGB(255,0,0)
+    spark.Parent = head
     
-    -- ЗВУК (слышат ВСЕ рядом!)
+    -- Звук (слышат рядом)
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://9116487514"
     sound.Volume = 10
     sound.Parent = head
     sound:Play()
     
-    -- ТЕЛЕПОРТ игрока вверх-вниз (видят ВСЕ!)
+    -- Тряска (видят все)
     spawn(function()
-        local origPos = root.CFrame
-        for i = 1, 10 do
+        local orig = root.CFrame
+        for i=1,15 do
             pcall(function()
-                root.CFrame = origPos * CFrame.new(0, math.random(10, 30), 0)
+                root.CFrame = orig * CFrame.new(math.random(-5,5), math.random(5,20), math.random(-5,5))
             end)
-            wait(0.3)
-            pcall(function()
-                root.CFrame = origPos
-            end)
-            wait(0.3)
+            wait(0.2)
         end
-        pcall(function() root.CFrame = origPos end)
+        pcall(function() root.CFrame = orig end)
     end)
     
-    -- Убираем эффекты через 8 секунд
     wait(8)
     pcall(function() fire:Destroy() end)
     pcall(function() smoke:Destroy() end)
-    pcall(function() sparkles:Destroy() end)
+    pcall(function() spark:Destroy() end)
     pcall(function() sound:Destroy() end)
     
-    Notify("✅ Скример отправлен: " .. target.Name)
+    Notify("Скример на "..target.Name.." отправлен!")
 end
 
--- ===== GUI =====
+function ScreamerGUI(target)
+    local pg = target:FindFirstChild("PlayerGui")
+    if not pg then return end
+    
+    local sg = Instance.new("ScreenGui")
+    sg.IgnoreGuiInset = true
+    sg.Parent = pg
+    
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    bg.Parent = sg
+    
+    local img = Instance.new("ImageLabel")
+    img.Size = UDim2.new(0.8,0,0.8,0)
+    img.Position = UDim2.new(0.1,0,0.1,0)
+    img.Image = "rbxassetid://17428653442"
+    img.BackgroundTransparency = 1
+    img.Parent = bg
+    
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1,0,0.1,0)
+    txt.Position = UDim2.new(0,0,0.05,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = "👁 Я ВИЖУ ТЕБЯ 👁"
+    txt.TextColor3 = Color3.fromRGB(255,0,0)
+    txt.Font = Enum.Font.GothamBlack
+    txt.TextSize = 40
+    txt.Parent = bg
+    
+    for i=0,1,0.02 do
+        bg.BackgroundTransparency = 1-i
+        RunService.RenderStepped:Wait()
+    end
+    
+    wait(3)
+    pcall(function() sg:Destroy() end)
+end
+
+-- ===== ФУНКЦИИ ТРОЛЛИНГА =====
+function CrashPlayer(target)
+    local char = target.Character
+    if not char then return end
+    
+    -- Удаляем части тела
+    for _,v in pairs(char:GetChildren()) do
+        if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then
+            pcall(function() v:Destroy() end)
+        end
+    end
+    
+    -- Удаляем Humanoid
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then pcall(function() hum:Destroy() end) end
+    
+    Notify(target.Name.." уничтожен!")
+end
+
+function CagePlayer(target)
+    local char = target.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local root = char.HumanoidRootPart
+    local pos = root.Position
+    
+    for x=-2,2 do
+        for y=0,4 do
+            for z=-2,2 do
+                if math.abs(x)==2 or math.abs(y)==4 or math.abs(z)==2 or y==0 then
+                    local p = Instance.new("Part")
+                    p.Size = Vector3.new(2,2,2)
+                    p.Position = pos + Vector3.new(x*2,y*2,z*2)
+                    p.Anchored = true
+                    p.BrickColor = BrickColor.random()
+                    p.Parent = WS
+                end
+            end
+        end
+    end
+    Notify(target.Name.." в клетке!")
+end
+
+function FlingPlayer(target)
+    local char = target.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local root = char.HumanoidRootPart
+    root.Velocity = Vector3.new(math.random(-500,500), 500, math.random(-500,500))
+    root.RotVelocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100))
+    Notify(target.Name.." улетел!")
+end
+
+-- ===== ФУНКЦИИ ДЛЯ СЕБЯ =====
+local flyOn = false
+function Fly()
+    flyOn = not flyOn
+    if flyOn then
+        local char = LP.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local root = char.HumanoidRootPart
+        char.Humanoid.PlatformStand = true
+        
+        local bg = Instance.new("BodyGyro")
+        bg.P = 9e4
+        bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+        bg.Parent = root
+        
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+        bv.Parent = root
+        
+        spawn(function()
+            while flyOn and root do
+                bg.CFrame = Camera.CFrame
+                local s = 50
+                bv.Velocity = Vector3.new(0,0,0)
+                if UIS:IsKeyDown(Enum.KeyCode.W) then bv.Velocity += Camera.CFrame.LookVector*s end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then bv.Velocity -= Camera.CFrame.LookVector*s end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then bv.Velocity -= Camera.CFrame.RightVector*s end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then bv.Velocity += Camera.CFrame.RightVector*s end
+                if UIS:IsKeyDown(Enum.KeyCode.Space) then bv.Velocity += Vector3.new(0,s,0) end
+                if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then bv.Velocity -= Vector3.new(0,s,0) end
+                RunService.RenderStepped:Wait()
+            end
+        end)
+    else
+        local char = LP.Character
+        if char then
+            char.Humanoid.PlatformStand = false
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if root then
+                for _,v in pairs(root:GetChildren()) do
+                    if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then v:Destroy() end
+                end
+            end
+        end
+    end
+end
+
+-- ===== ГЛАВНЫЙ GUI =====
 local gui = Instance.new("ScreenGui")
 gui.Parent = (gethui and gethui()) or game:GetService("CoreGui")
 if syn and syn.protect_gui then syn.protect_gui(gui) end
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 250, 0, 110)
-main.Position = UDim2.new(0.5, -125, 0.3, 0)
-main.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+main.Size = UDim2.new(0,280,0,380)
+main.Position = UDim2.new(0.5,-140,0.5,-190)
+main.BackgroundColor3 = Color3.fromRGB(15,15,20)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner",main).CornerRadius = UDim.new(0,10)
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 28)
-title.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-title.BorderSizePixel = 0
-title.Text = "👻 SCREAMER v5"
-title.TextColor3 = Color3.fromRGB(255, 50, 50)
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 13
-title.Parent = main
-Instance.new("UICorner", title).CornerRadius = UDim.new(0, 10)
+local top = Instance.new("TextLabel")
+top.Size = UDim2.new(1,0,0,32)
+top.BackgroundColor3 = Color3.fromRGB(25,25,32)
+top.BorderSizePixel = 0
+top.Text = "🔥 KONUS HUB v5.0"
+top.TextColor3 = Color3.fromRGB(255,80,80)
+top.Font = Enum.Font.GothamBlack
+top.TextSize = 14
+top.Parent = main
+Instance.new("UICorner",top).CornerRadius = UDim.new(0,10)
 
-local box = Instance.new("TextBox")
-box.Size = UDim2.new(1, -20, 0, 28)
-box.Position = UDim2.new(0, 10, 0, 35)
-box.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-box.BorderSizePixel = 0
-box.PlaceholderText = "Введи часть ника..."
-box.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-box.Text = ""
-box.TextColor3 = Color3.fromRGB(255, 255, 255)
-box.Font = Enum.Font.Gotham
-box.TextSize = 12
-box.Parent = main
-Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+-- Поле ника
+local nBox = Instance.new("TextBox")
+nBox.Size = UDim2.new(1,-20,0,28)
+nBox.Position = UDim2.new(0,10,0,40)
+nBox.BackgroundColor3 = Color3.fromRGB(30,30,38)
+nBox.BorderSizePixel = 0
+nBox.PlaceholderText = "Введи ник игрока..."
+nBox.PlaceholderColor3 = Color3.fromRGB(150,150,150)
+nBox.Text = ""
+nBox.TextColor3 = Color3.fromRGB(255,255,255)
+nBox.Font = Enum.Font.Gotham
+nBox.TextSize = 12
+nBox.Parent = main
+Instance.new("UICorner",nBox).CornerRadius = UDim.new(0,6)
 
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, -20, 0, 30)
-btn.Position = UDim2.new(0, 10, 0, 70)
-btn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
-btn.Text = "👻 СКРИМЕР"
-btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-btn.Font = Enum.Font.GothamBlack
-btn.TextSize = 13
-btn.BorderSizePixel = 0
-btn.Parent = main
-Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+-- Функция для кнопок
+function MakeBtn(text,posY,color,callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-20,0,28)
+    b.Position = UDim2.new(0,10,0,posY)
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 11
+    b.BorderSizePixel = 0
+    b.Parent = main
+    Instance.new("UICorner",b).CornerRadius = UDim.new(0,5)
+    b.MouseButton1Click:Connect(function()
+        local name = nBox.Text
+        if name == "" then Notify("Введи ник!"); return end
+        local target = FindPlayer(name)
+        if not target then Notify("Игрок не найден!"); return end
+        callback(target)
+    end)
+end
 
-btn.MouseButton1Click:Connect(function()
-    local name = box.Text
-    if name == "" then Notify("❌ Введи ник!"); return end
-    local target = FindPlayer(name)
-    if not target then Notify("❌ Игрок не найден!"); return end
-    Notify("👻 Скример: " .. target.Name)
-    ScreamerPlayer(target)
+-- Вкладки
+local tabY = 75
+
+-- СКРИМЕРЫ
+local t1 = Instance.new("TextLabel")
+t1.Size = UDim2.new(1,-20,0,18)
+t1.Position = UDim2.new(0,10,0,tabY)
+t1.BackgroundTransparency = 1
+t1.Text = "— 👻 СКРИМЕРЫ —"
+t1.TextColor3 = Color3.fromRGB(255,100,100)
+t1.Font = Enum.Font.GothamBold
+t1.TextSize = 10
+t1.TextXAlignment = Enum.TextXAlignment.Center
+t1.Parent = main
+
+MakeBtn("🔥 Огонь + Дым + Звук", tabY+22, Color3.fromRGB(180,30,30), ScreamerFire)
+MakeBtn("🖼 GUI скример", tabY+54, Color3.fromRGB(150,20,20), ScreamerGUI)
+
+-- ТРОЛЛИНГ
+local t2 = Instance.new("TextLabel")
+t2.Size = UDim2.new(1,-20,0,18)
+t2.Position = UDim2.new(0,10,0,tabY+86)
+t2.BackgroundTransparency = 1
+t2.Text = "— 🎭 ТРОЛЛИНГ —"
+t2.TextColor3 = Color3.fromRGB(255,150,50)
+t2.Font = Enum.Font.GothamBold
+t2.TextSize = 10
+t2.TextXAlignment = Enum.TextXAlignment.Center
+t2.Parent = main
+
+MakeBtn("💀 Уничтожить (краш)", tabY+108, Color3.fromRGB(200,100,0), CrashPlayer)
+MakeBtn("📦 Клетка", tabY+140, Color3.fromRGB(180,80,0), CagePlayer)
+MakeBtn("🌀 Флинг (запустить)", tabY+172, Color3.fromRGB(160,60,0), FlingPlayer)
+
+-- ДЛЯ СЕБЯ
+local t3 = Instance.new("TextLabel")
+t3.Size = UDim2.new(1,-20,0,18)
+t3.Position = UDim2.new(0,10,0,tabY+204)
+t3.BackgroundTransparency = 1
+t3.Text = "— ⚡ ДЛЯ СЕБЯ —"
+t3.TextColor3 = Color3.fromRGB(100,200,255)
+t3.Font = Enum.Font.GothamBold
+t3.TextSize = 10
+t3.TextXAlignment = Enum.TextXAlignment.Center
+t3.Parent = main
+
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(1,-20,0,28)
+flyBtn.Position = UDim2.new(0,10,0,tabY+226)
+flyBtn.BackgroundColor3 = Color3.fromRGB(30,100,200)
+flyBtn.Text = "✈ ПОЛЁТ (ВКЛ/ВЫКЛ)"
+flyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+flyBtn.Font = Enum.Font.GothamBold
+flyBtn.TextSize = 11
+flyBtn.BorderSizePixel = 0
+flyBtn.Parent = main
+Instance.new("UICorner",flyBtn).CornerRadius = UDim.new(0,5)
+flyBtn.MouseButton1Click:Connect(Fly)
+
+local spdBtn = Instance.new("TextButton")
+spdBtn.Size = UDim2.new(1,-20,0,28)
+spdBtn.Position = UDim2.new(0,10,0,tabY+258)
+spdBtn.BackgroundColor3 = Color3.fromRGB(30,80,150)
+spdBtn.Text = "⚡ СКОРОСТЬ 100"
+spdBtn.TextColor3 = Color3.fromRGB(255,255,255)
+spdBtn.Font = Enum.Font.GothamBold
+spdBtn.TextSize = 11
+spdBtn.BorderSizePixel = 0
+spdBtn.Parent = main
+Instance.new("UICorner",spdBtn).CornerRadius = UDim.new(0,5)
+spdBtn.MouseButton1Click:Connect(function()
+    if LP.Character and LP.Character:FindFirstChild("Humanoid") then
+        LP.Character.Humanoid.WalkSpeed = 100
+        Notify("Скорость 100!")
+    end
 end)
 
-local close = Instance.new("TextButton")
-close.Size = UDim2.new(0, 20, 0, 20)
-close.Position = UDim2.new(1, -24, 0, 4)
-close.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-close.Text = "✕"
-close.TextColor3 = Color3.fromRGB(255, 255, 255)
-close.Font = Enum.Font.GothamBold
-close.TextSize = 9
-close.BorderSizePixel = 0
-close.Parent = main
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 10)
-close.MouseButton1Click:Connect(function() gui:Destroy() end)
+local jmpBtn = Instance.new("TextButton")
+jmpBtn.Size = UDim2.new(1,-20,0,28)
+jmpBtn.Position = UDim2.new(0,10,0,tabY+290)
+jmpBtn.BackgroundColor3 = Color3.fromRGB(30,60,120)
+jmpBtn.Text = "🦘 ПРЫЖОК 200"
+jmpBtn.TextColor3 = Color3.fromRGB(255,255,255)
+jmpBtn.Font = Enum.Font.GothamBold
+jmpBtn.TextSize = 11
+jmpBtn.BorderSizePixel = 0
+jmpBtn.Parent = main
+Instance.new("UICorner",jmpBtn).CornerRadius = UDim.new(0,5)
+jmpBtn.MouseButton1Click:Connect(function()
+    if LP.Character and LP.Character:FindFirstChild("Humanoid") then
+        LP.Character.Humanoid.JumpPower = 200
+        Notify("Прыжок 200!")
+    end
+end)
 
-Notify("👻 Screamer v5 готов!")
-Notify("Видят ВСЕ! Огонь + дым + звук")
+-- Закрыть
+local cls = Instance.new("TextButton")
+cls.Size = UDim2.new(0,22,0,22)
+cls.Position = UDim2.new(1,-26,0,5)
+cls.BackgroundColor3 = Color3.fromRGB(255,50,50)
+cls.Text = "✕"
+cls.TextColor3 = Color3.fromRGB(255,255,255)
+cls.Font = Enum.Font.GothamBold
+cls.TextSize = 10
+cls.BorderSizePixel = 0
+cls.Parent = main
+Instance.new("UICorner",cls).CornerRadius = UDim.new(0,11)
+cls.MouseButton1Click:Connect(function() gui:Destroy() end)
+
+Notify("🔥 Konus HUB v5.0 загружен!")
+Notify("Скримеры | Троллинг | Функции")
