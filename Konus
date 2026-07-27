@@ -1,77 +1,15 @@
-import requests, os, time
+python -c "
+import requests
+TOKEN = '8845897358:AAFwhSC_b4oSXGeIsBtaiHabIvkbiXjpQIc'
+r = requests.get(f'https://api.telegram.org/bot{TOKEN}/getUpdates').json()
+print(r)
+"
 
-TOKEN = "8845897358:AAFwhSC_b4oSXGeIsBtaiHabIvkbiXjpQIc"
-ADMIN = "6196009774"
 
-def send_photo(cid, path, cap):
-    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",
-        data={"chat_id":cid,"caption":cap},
-        files={"photo":open(path,"rb")})
-
-def send_msg(cid, text):
-    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-        data={"chat_id":cid,"text":text})
-
-print("📱 ST Бот запущен!")
-last = 0
-
-while True:
-    try:
-        r = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={last+1}", timeout=30).json()
-        for u in r.get("result",[]):
-            last = u["update_id"]
-            m = u.get("message",{})
-            cid = m.get("chat",{}).get("id")
-            txt = m.get("text","")
-            
-            if str(cid) != ADMIN:
-                send_msg(cid, "❌ Нет доступа")
-                continue
-            
-            if txt == "/screen":
-                send_msg(cid, "📱 Делаю скриншот...")
-                os.system("screencap /sdcard/screen.png")
-                send_photo(cid, "/sdcard/screen.png", "📱 Экран ST")
-            
-            elif txt == "/camera":
-                send_msg(cid, "📷 Фоткаю заднюю камеру...")
-                os.system("termux-camera-photo -c 0 /sdcard/cam_back.jpg")
-                send_photo(cid, "/sdcard/cam_back.jpg", "📷 Задняя камера")
-            
-            elif txt == "/selfie":
-                send_msg(cid, "🤳 Фоткаю переднюю камеру...")
-                os.system("termux-camera-photo -c 1 /sdcard/cam_front.jpg")
-                send_photo(cid, "/sdcard/cam_front.jpg", "🤳 Передняя камера")
-            
-            elif txt == "/gps":
-                send_msg(cid, "📍 Ищу местоположение...")
-                os.system("termux-location > /sdcard/gps.txt 2>&1")
-                with open("/sdcard/gps.txt") as f:
-                    send_msg(cid, "📍 GPS:\n" + f.read()[:300])
-            
-            elif txt == "/all":
-                send_msg(cid, "📱 Собираю всё...")
-                os.system("screencap /sdcard/screen.png")
-                os.system("termux-camera-photo -c 0 /sdcard/cam_back.jpg")
-                os.system("termux-camera-photo -c 1 /sdcard/cam_front.jpg")
-                send_photo(cid, "/sdcard/screen.png", "📱 Экран")
-                send_photo(cid, "/sdcard/cam_back.jpg", "📷 Задняя")
-                send_photo(cid, "/sdcard/cam_front.jpg", "🤳 Передняя")
-                os.system("termux-location > /sdcard/gps.txt 2>&1")
-                with open("/sdcard/gps.txt") as f:
-                    send_msg(cid, "📍 " + f.read()[:200])
-            
-            elif txt == "/start":
-                send_msg(cid, """📱 ST Phone Bot
-
-/screen - скриншот экрана
-/camera - задняя камера
-/selfie - передняя камера
-/gps - местоположение
-/all - всё сразу""")
-        
-        time.sleep(2)
-    except KeyboardInterrupt:
-        break
-    except:
-        time.sleep(5)
+python -c "
+import requests
+TOKEN = '8845897358:AAFwhSC_b4oSXGeIsBtaiHabIvkbiXjpQIc'
+r = requests.get(f'https://api.telegram.org/bot{TOKEN}/getUpdates').json()
+for u in r.get('result',[]):
+    print(u.get('message',{}).get('text'))
+"
